@@ -29,7 +29,7 @@
 
 **Working Principle:**
 
-This task extends event handling by distinguishing between short and long button presses to trigger different operational modes. When `debounce_update()` detects a valid press edge (`BTN_PRESS_EDGE`), the firmware records the system timestamp in `press_start_ms`. The user continues holding the button while the main loop executes normally. Upon release (`BTN_RELEASE_EDGE`), the duration is calculated: $\Delta t = \text{release\_time} - \text{press\_start\_ms}$. The routine `classify_press()` evaluates the duration: $\Delta t < 1000$ ms is categorized as a short press, while $\Delta t \ge 1000$ ms is categorized as a long press. Note that classification occurs strictly **upon button release**, meaning long-press blinking activates when the button is let go rather than mid-hold. An active blinking sequence (toggling every 200 ms using non-blocking timestamps) can be halted by a subsequent short press, or restarted with another long press.
+This task extends event handling by distinguishing between short and long button presses to trigger different operational modes without blocking. When `debounce_update()` detects a valid press edge (returns `1`), the firmware records the system timestamp in `press_start_ms = now`. The user continues holding the button while the main loop executes continuously. Upon release (returns `2`), the held duration is calculated: `last_press_ms = now - press_start_ms`. If the duration is $\ge 1000$ ms, it is classified as a long press and activates continuous blinking mode (`blinking = 1`). If the duration is $< 1000$ ms (short press), the behavior depends on the current state: if blinking is active, it halts blinking mode and turns the LED off; otherwise, it toggles the normal LED state (`led_on = !led_on`). Classification occurs strictly **upon button release**, meaning long-press blinking activates when the button is let go rather than mid-hold. When blinking mode is active, the LED toggles every 200 ms using non-blocking timestamp comparisons (`(now - last_blink_ms) >= 200`).
 
 | Action | Response |
 |---|---|
@@ -40,18 +40,20 @@ This task extends event handling by distinguishing between short and long button
 
 **Pseudocode:**
 
-1. When a debounced press edge occurs, capture `press_start_ms = HAL_GetTick()`.
-2. When the corresponding release edge arrives, calculate `duration = HAL_GetTick() - press_start_ms`.
-3. Pass `duration` to `classify_press()`:
-   a. If duration $\ge 1000$ ms (Long Press): enable blinking mode (`blinking = 1`).
-   b. If duration $< 1000$ ms (Short Press): if already blinking, exit blinking mode; otherwise, toggle the LED directly.
-4. When `blinking == 1`, check if 200 ms have passed since the last toggle using `HAL_GetTick()`; if so, invert PC13 and refresh the blink timer.
+1. In each pass of `main()`, poll `debounce_update(&button, button_raw_pressed(), now)`.
+2. When a debounced press edge occurs (`event == 1`), record `press_start_ms = now`.
+3. When the corresponding release edge arrives (`event == 2`), calculate `last_press_ms = now - press_start_ms`:
+   a. If `last_press_ms >= 1000` ms (Long Press): enable blinking mode (`blinking = 1; last_blink_ms = now;`).
+   b. If `last_press_ms < 1000` ms (Short Press):
+      - If already blinking: exit blinking mode (`blinking = 0; led_on = 0; led_write(0);`).
+      - Otherwise: toggle normal state (`led_on = !led_on; led_write(led_on);`).
+4. If `blinking == 1` and `(now - last_blink_ms) >= 200`: refresh `last_blink_ms = now` and toggle PC13 via `HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13)`.
 
 **Code Base:**
 
 - Project files: `CAT08C_Short_vs_Long_Press.ioc` (CubeMX configuration), `MDK-ARM/CAT08C_Short_vs_Long_Press.uvprojx` (Keil MDK), `.project` / `.cproject` (STM32CubeIDE); application code in `Core/Src/main.c`.
-- `classify_press()`
-- `HAL_GetTick()` for both press timing and blink interval — no `HAL_Delay()`
+- `debounce_update()` returning numeric event codes (1 = press, 2 = release, 0 = idle)
+- `HAL_GetTick()` for both press timing and 200 ms blink interval — zero `HAL_Delay()` blocking calls
 
 ### 3. Inference
 

@@ -29,7 +29,7 @@
 
 **Working Principle:**
 
-This experiment builds a complete interactive human-machine interface by coordinating a matrix keypad, a common-cathode 7-segment display, and an array of 4 LEDs. To multiplex the 4×3 keypad using only 7 microcontroller pins, we implement active row scanning. Each row line (P2.7–P2.4) is driven LOW one at a time via `P2 = ~(0x80 >> row)`, while column inputs (P2.3–P2.1) are read with pull-ups enabled. When a LOW bit reveals an active key contact, the code waits 15 ms to filter mechanical contact chatter and re-reads the lines. Validated keystrokes are translated via the code-memory array `KEYMAP[4][3]` and reported once per press event. The digit is shown on the 7-segment display through the pattern lookup table `SEG_CODE[10]` driven over Port 0, while the corresponding LED pattern is activated.
+This experiment builds a complete interactive human-machine interface by coordinating a matrix keypad, a common-cathode 7-segment display, and an array of 4 LEDs. To multiplex the 4×3 keypad using only 7 microcontroller pins, we implement active row scanning. Each row line (P2.7–P2.4) is driven LOW one at a time via `P2 = ~(0x80 >> row)`, while column inputs (P2.3–P2.1) are read with pull-ups enabled (`read_columns() = P2 & 0x0E`). When a LOW bit reveals an active key contact, the code waits 15 ms to filter mechanical contact chatter and re-reads the lines. Validated keystrokes are decoded via direct row/column calculation (`col + 1` for row 0, `col + 4` for row 1, `col + 7` for row 2, and 10 / 0 / 11 for row 3) and reported once per press event (`key_held` flag edge detection). The digit is shown on the common-cathode 7-segment display via a `switch` statement in `display_digit()` driving Port 0 (cases 0–9 output 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F; default blanks the display with 0x00), while the corresponding LED pattern is activated.
 
 | Key | Display | LED operation |
 |---|---|---|
@@ -43,13 +43,13 @@ This experiment builds a complete interactive human-machine interface by coordin
 
 **Pseudocode:**
 
-1. Initialize pins: extinguish all LEDs and clear the seven-segment display.
-2. In the 10 ms scheduling loop, invoke `keypad_scan()`.
-3. When a newly pressed key is detected:
-   a. Call `display_digit(key)` to render the digit on the 7-segment display.
-   b. Call `led_control(key)` to engage either static output or initiate an animation sequence.
-4. Every 250 ms, advance any active animated mode (`running_led()`, `alternate_led()`, `binary_counter()`, or `blink_all()`).
-5. Key 9 shuts all LEDs off, while key 0 resets both the display and LED states.
+1. Initialize pins: set `P2 = 0xFF`, extinguish all LEDs with `leds_write(0x00)`, and blank the seven-segment display with `display_digit(0xFF)`.
+2. In the 10 ms scheduling loop (`delay_ms(10)`), invoke `keypad_scan()`.
+3. When a newly pressed key is detected (`key_value <= 9`):
+   a. Call `display_digit(key_value)` to render the digit on the 7-segment display.
+   b. Call `led_control(key_value)` to engage either static output or initiate an animation sequence, resetting the animation timer.
+4. Every 25 loop iterations (250 ms), advance any active animated mode (`running_led()`, `alternate_led()`, `binary_counter()`, or `blink_all()`).
+5. Key 9 shuts all LEDs off, while key 0 resets both the display, animation counters, and LED states.
 
 **Code Base:**
 

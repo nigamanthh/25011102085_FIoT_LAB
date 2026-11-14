@@ -29,22 +29,22 @@
 
 **Working Principle:**
 
-Mechanical switch contacts physically chatter for several milliseconds upon closure and release, which a high-speed 72 MHz Cortex-M3 processor would easily misinterpret as multiple rapid presses. To resolve this, we implement a non-blocking software debouncer using millisecond timestamps from `HAL_GetTick()`. Button state is encapsulated in a `debounce_t` structure storing the current verified state, the last raw sample, and the timestamp of the latest transition. Within `debounce_update()`, any change in the raw input resets the stability clock. Only after the input remains steady for 25 continuous milliseconds does the routine update its latched state and return a transitional event (`BTN_PRESS_EDGE` or `BTN_RELEASE_EDGE`). The LED on PC13 is toggled strictly upon receiving `BTN_PRESS_EDGE`, and an event counter (`toggle_count`) is incremented for verification in the IDE's Live Expressions window.
+Mechanical switch contacts physically chatter for several milliseconds upon closure and release, which a high-speed 72 MHz Cortex-M3 processor would easily misinterpret as multiple rapid presses. To resolve this, we implement a non-blocking software debouncer using millisecond timestamps from `HAL_GetTick()`. Button state is encapsulated in a `debounce_t` structure storing the current verified state (`stable`), the last raw sample (`last_raw`), and the timestamp of the latest transition (`last_change`). Within `debounce_update()`, any change in the raw input resets the stability clock. Only after the input remains steady for 25 continuous milliseconds (`(now - d->last_change) >= 25`) and differs from the stored state does the routine update its latched state (`d->stable = raw`) and return `raw`. The LED on PC13 is toggled strictly upon receiving this debounced press event (`if (debounce_update(...))`), and an event counter (`toggle_count`) is incremented for verification in the IDE's Live Expressions window.
 
 **Pseudocode:**
 
-1. In each cycle of `main()`, read the raw digital state of PA15 and fetch the current time via `HAL_GetTick()`.
-2. Supply these values to `debounce_update()`.
-3. If the input state has changed, record the transition timestamp.
-4. Once the raw line remains unchanged for $\ge 25$ ms and differs from the stored state, accept the new state and return the detected edge.
-5. On `BTN_PRESS_EDGE`, toggle the PC13 LED using `HAL_GPIO_TogglePin()` and increment `toggle_count`.
+1. In each cycle of `main()`, read the raw digital state of PA15 via `button_raw_pressed()` and fetch the current timestamp via `HAL_GetTick()`.
+2. Supply these values to `debounce_update(&button, raw, now)`.
+3. If the raw input state differs from `last_raw`, update `last_raw` and record the transition timestamp `last_change = now`.
+4. Once the raw line remains unchanged for $\ge 25$ ms and differs from `stable`, update `d->stable = raw` and return `raw`.
+5. On a valid debounced press edge (function returns 1), toggle the PC13 LED using `HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13)` and increment `toggle_count`.
 
 **Code Base:**
 
 - Project files: `CAT08B_Event_Toggle_Debounce.ioc` (CubeMX configuration), `MDK-ARM/CAT08B_Event_Toggle_Debounce.uvprojx` (Keil MDK), `.project` / `.cproject` (STM32CubeIDE); application code in `Core/Src/main.c`.
-- `debounce_t` (stable, last_raw, last_change)
-- `debounce_update()` → `BTN_PRESS_EDGE` / `BTN_RELEASE_EDGE`
-- `HAL_GPIO_TogglePin()`; `toggle_count` for Live Expressions
+- `debounce_t` (`stable`, `last_raw`, `last_change`)
+- `debounce_update()` — returns `raw` on verified state change after 25 ms debounce
+- `HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13)`; `toggle_count` for Live Expressions
 
 ### 3. Inference
 

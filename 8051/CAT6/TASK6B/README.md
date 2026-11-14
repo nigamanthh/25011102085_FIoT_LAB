@@ -43,7 +43,7 @@ This task extends the serial interface to support bi-directional full-duplex com
 **Code Base:**
 
 - Project files: `TASK6B.uvproj` (Keil µVision), `STARTUP.A51`, firmware `Objects/TASK6B.hex`.
-- `main.c` — `uart_getc()` + `uart_putc()`
+- `main.c` — `uart_init()`, `uart_putc()`, `uart_getc()`, `uart_puts()`
 
 **Expected Output:**
 

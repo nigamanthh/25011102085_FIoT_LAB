@@ -35,7 +35,7 @@ This task establishes serial communication between the STM32F103 and a host PC u
 **Pseudocode:**
 
 1. Initialize USART2 at 115200-8-N-1 and transmit a startup banner string.
-2. Attempt to read a single byte using `HAL_UART_Receive(&huart2, &rx_byte, 1, 10)`.
+2. Attempt to read a single byte using `HAL_UART_Receive(&huart2, &rx, 1, 10)`.
 3. If a character is received (`HAL_OK`):
    a. Transmit it back to the terminal (transmitting `\r\n` when `\r` is received).
    b. Reset the inactivity timer with `HAL_GetTick()`.

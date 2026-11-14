@@ -49,8 +49,11 @@ This lab establishes a dual-UART bridge architecture on the STM32F103 Blue Pill 
 
 - Project files: `CAT10A_STM32_Wemos_UART_Link.ioc` (CubeMX configuration), `MDK-ARM/CAT10A_STM32_Wemos_UART_Link.uvprojx` (Keil MDK), `.project` / `.cproject` (STM32CubeIDE); application code in `Core/Src/main.c`.
 - `esp_read_line()` — line reader with timeout
-- `at_command()` — collect until status line
-- `at_show()` — print command and replies
+- `at_command()` — sends AT command and collects response lines (0 = OK, 1 = ERROR/FAIL, 2 = TIMEOUT)
+- `at_show()` — logs `>> command` and `<< response` lines to PC terminal
+- `esp_startup()` — waits 2 s for bootloader, validates AT link with up to 3 retries, issues `ATE0`
+- `at_bridge_start()` / `at_bridge_poll()` — interrupt-driven bidirectional UART bridge (256-byte RX circular buffers `from_esp`/`from_pc`, 512-byte TX queues `to_esp`/`to_pc`)
+- Interrupt callbacks: `HAL_UART_RxCpltCallback()` (re-arming single-byte IT RX), `HAL_UART_TxCpltCallback()` (advancing non-blocking TX ring), and `HAL_UART_ErrorCallback()` (clearing ORE flag and re-arming RX)
 
 **Expected Output:**
 

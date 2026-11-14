@@ -36,15 +36,14 @@ In this initial bring-up on the STM32F103 "Blue Pill" board, we configure genera
 1. Initialize the HAL library (`HAL_Init()`), set up system clocks to 72 MHz using HSE and the PLL, and initialize GPIO peripheral clocks.
 2. Ensure the user LED begins in the OFF state (`PC13 = HIGH`).
 3. Inside the infinite loop:
-   a. Sample the raw digital state of PA15 with `button_raw_pressed()`.
-   b. Write the corresponding active-low state to PC13 using `led_write()`.
+   a. Read the raw digital state of PA15 directly with `HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15)`.
+   b. If the pin is LOW (button pressed), drive PC13 LOW (LED ON) via `HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET)`; otherwise drive PC13 HIGH (LED OFF).
 4. Repeat continuously.
 
 **Code Base:**
 
 - Project files: `CAT08A_GPIO_Input_Output.ioc` (CubeMX configuration), `MDK-ARM/CAT08A_GPIO_Input_Output.uvprojx` (Keil MDK), `.project` / `.cproject` (STM32CubeIDE); application code in `Core/Src/main.c`.
-- `button_raw_pressed()` → `HAL_GPIO_ReadPin()`
-- `led_write()` → `HAL_GPIO_WritePin()` with active-low levels
+- Direct HAL GPIO calls: `HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15)` and `HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, ...)` with active-low logic (RESET = ON, SET = OFF).
 
 ### 3. Inference
 

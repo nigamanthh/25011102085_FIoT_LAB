@@ -30,24 +30,24 @@ PuTTY: 9600 baud, 8 data, no parity, 1 stop.
 
 **Working Principle:**
 
-Polling UART reception monopolizes CPU time and risks dropping bytes if the MCU is busy with another task. Here, we implement asynchronous, interrupt-driven reception using the 8051 serial interrupt (vector 4, `ES = 1`, `EA = 1`). Whenever a byte arrives, the hardware sets `RI`, triggering the ISR. The ISR immediately reads `SBUF`, clears `RI`, and writes the byte into a 16-element circular FIFO ring buffer. To distinguish unambiguously between buffer-full and buffer-empty states without an extra counter, one slot remains vacant, providing a usable capacity of 15 bytes. The ISR manages the `head` pointer while the foreground `main()` process reads from `tail`. When `TI` triggers on completed transmissions, the ISR clears `tx_busy`. Free of blocking polling, the main loop can perform background tasks—such as blinking a heartbeat LED on P1.0—while assembling complete text commands terminated by Enter.
+Polling UART reception monopolizes CPU time and risks dropping bytes if the MCU is busy with another task. Here, we implement asynchronous, interrupt-driven reception using the 8051 serial interrupt (vector 4, `ES = 1`, `EA = 1`). Whenever a byte arrives, the hardware sets `RI`, triggering the ISR. The ISR immediately reads `SBUF`, clears `RI`, and writes the byte into a 16-element circular FIFO ring buffer. To distinguish unambiguously between buffer-full and buffer-empty states without an extra counter, one slot remains vacant, providing a usable capacity of 15 bytes. The ISR manages the `head` pointer while the foreground `main()` process reads from `tail`. When `TI` triggers on completed transmissions, the ISR clears `tx_busy`. Free of blocking polling, the main loop can perform background tasks—such as blinking a heartbeat LED on P1.0 (`sbit led = P1^0;`) every 30,000 idle loop passes—while assembling complete text commands up to 32 characters (`line[33]`) terminated by Enter.
 
 **Pseudocode:**
 
-1. Configure UART parameters and enable serial interrupts (`ES = 1`, `EA = 1`).
-2. Inside the serial ISR:
-   a. If `RI` is set: read `SBUF`, deposit the character into the ring buffer at `head` (advancing `head`), or flag an overflow if full, and clear `RI`.
+1. Configure UART parameters and enable serial interrupts (`ES = 1`, `EA = 1`) via `uart_init()`.
+2. Inside the serial ISR (`uart_isr() interrupt 4`):
+   a. If `RI` is set: read `SBUF`, deposit the character into the ring buffer at `head` (advancing `head`), or flag an overflow count if full, and clear `RI`.
    b. If `TI` is set: clear `tx_busy` and clear `TI`.
 3. Inside `main()`:
-   a. Maintain an LED heartbeat to demonstrate non-blocking execution.
-   b. While `uart_available()` is true, retrieve characters with `uart_getc()`, echo them back, and append to `line[]`.
-   c. Upon receiving a Carriage Return / Enter key, print `Got N chars: <line>`, report any overflow count, and reset the buffer index.
+   a. Maintain an LED heartbeat (`led = !led` every 30,000 iterations) to demonstrate non-blocking background execution.
+   b. While `uart_available()` is true, retrieve characters with `uart_getc()`, echo them back with `uart_putc()`, and append to `line[]` (up to 32 chars; if exceeded, emit `\a` bell).
+   c. Upon receiving a Carriage Return or Line Feed, null-terminate `line[]`, print `Got N chars: <line>` using `uart_put_uint()`, report any buffer overflows via `uart_overflows()`, and reset `len = 0`.
 
 **Code Base:**
 
 - Project files: `TASK6C.uvproj` (Keil µVision), `STARTUP.A51`, firmware `Objects/TASK6C.hex`.
-- `uart.c` / `uart.h` — ISR, ring buffer, `uart_available()`, `uart_getc()`
-- `main.c` — line handling and heartbeat
+- `uart.c` / `uart.h` — serial ISR (interrupt vector 4), 16-byte ring buffer (`uart_init()`, `uart_available()`, `uart_getc()`, `uart_putc()`, `uart_puts()`, `uart_overflows()`)
+- `main.c` — line buffering (`line[33]`), integer printing (`uart_put_uint()`), and heartbeat LED (`sbit led = P1^0;`)
 
 **Expected Output:**
 

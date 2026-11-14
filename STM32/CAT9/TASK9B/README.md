@@ -60,8 +60,9 @@ This experiment builds an interactive command-line interface (CLI) on top of USA
 **Code Base:**
 
 - Project files: `CAT09B_String_Command_LED.ioc` (CubeMX configuration), `MDK-ARM/CAT09B_String_Command_LED.uvprojx` (Keil MDK), `.project` / `.cproject` (STM32CubeIDE); application code in `Core/Src/main.c`.
-- `normalise()` — trim + upper-case
-- `handle_command()`, `crlf_demo()`
+- `normalise()` — trims whitespace and converts to uppercase
+- `handle_command()`, `crlf_demo()`, `led_apply()`
+- Line buffering (`cmd_buf[33]`), backspace visual erasing (`"\b \b"`), and bell character (`\a`) on buffer overflow.
 
 **Expected Output:**
 

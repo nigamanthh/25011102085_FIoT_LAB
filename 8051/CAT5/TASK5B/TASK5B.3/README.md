@@ -35,17 +35,22 @@ Instead of computing individual pulse transitions mathematically, complex digita
 
 **Pseudocode:**
 
-1. Configure Timer 0 in 8-bit auto-reload Mode 2 for a 100 µs period.
-2. In the ISR:
-   a. Track an interrupt tick counter up to 5.
-   b. Every 5 ticks (0.5 ms), output the next bit of the active waveform pattern onto pin P1.1.
-   c. Advance the bit pointer and wrap around to the start of the pattern.
-3. In `main()`, poll the keypad and cycle through the available waveform patterns on each key event.
+1. Initialize button pins (`button_col = 0; button_row = 1;`), configure Timer 0 in Mode 2 (`TMOD = (TMOD & 0xF0) | 0x02; TH0 = TL0 = 0xA4;`), initialize pattern with `select_pattern(0)`, and enable interrupts (`EA = 1; TR0 = 1;`).
+2. In `select_pattern(n)` (patterns 0 to 3):
+   a. Disable Timer 0 interrupt (`ET0 = 0`).
+   b. Use a `switch(n)` block to set `cur_pattern` and `cur_len` (case 0: `square` "10", len 2; case 1: `duty` "11110000", len 8; case 2: `pulse` "1000000000", len 10; case 3: `burst` "10101010100000000000", len 20) and show the pattern number 1–4 on 7-segment Port 0 (0x06, 0x5B, 0x4F, 0x66).
+   c. Reset `bit_idx = 0; tick_cnt = 0;` and re-enable `ET0 = 1;`.
+3. In `timer0_isr() interrupt 1 using 1`:
+   a. Track `tick_cnt`; every 5 ticks (0.5 ms), reset `tick_cnt = 0`.
+   b. Output the active bit: `signal = (cur_pattern[bit_idx] == '1');` (`sbit signal = P1^1;`).
+   c. Advance `bit_idx` and wrap around to 0 when `bit_idx >= cur_len`.
+4. In `main()`, poll `button_pressed()` in an infinite loop (debounced with 20 ms delay and wait-for-release). When pressed, advance `n` (wrapping at $\ge 4$ back to 0) and call `select_pattern(n)`.
 
 **Code Base:**
 
 - Project files: `TASK5B_3.uvproj` (Keil µVision), `STARTUP.A51`, firmware `Objects/TASK5B_3.hex`.
-- `main.c` — `PATTERNS[]`, `select_pattern()`
+- `main.c` — `select_pattern()`, `timer0_isr() interrupt 1 using 1`, `button_pressed()`
+- `delay.c/.h` — software delay for button debounce
 
 ### 3. Inference
 

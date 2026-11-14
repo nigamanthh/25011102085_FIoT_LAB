@@ -77,19 +77,19 @@ We confirmed that the development board powers up correctly, the supply rails ar
 
 **Working Principle:**
 
-We declare `sbit USER_LED = P1^0;` to bind the LED pin directly to bit 0 of Port 1's Special Function Register (address 0x90). Because the 8051 architecture uses quasi-bidirectional I/O ports without separate data direction registers (DDR), simply writing a logic state to the port pin drives the line. Since the LED is wired in active-low mode, clearing P1.0 turns the LED on, while setting it turns it off. To achieve a 0.5 s half-period delay without hardware timers, we employ a nested software loop. Declaring the inner loop variable as `volatile` prevents the Keil C51 optimizer from stripping the loop away. In simulation (uCsim at 11.0592 MHz), a single outer iteration takes approximately 2086 machine cycles (~2.26 ms), meaning 221 outer passes yield a delay very close to 0.5 seconds.
+We declare `sbit led = P1^0;` to bind the LED pin directly to bit 0 of Port 1's Special Function Register (address 0x90). Because the 8051 architecture uses quasi-bidirectional I/O ports without separate data direction registers (DDR), simply writing a logic state to the port pin drives the line. Since the LED is wired in active-low mode, clearing P1.0 turns the LED on, while setting it turns it off. To achieve a half-period delay without hardware timers, we employ a nested software loop: `delay(count)` iterates an outer loop `count` times, each time running an inner `volatile unsigned char j` loop to 250 to prevent optimizer removal. The delay is called with a count of 200 outer passes.
 
 **Pseudocode:**
 
 1. Include the 8052 register header (`reg52.h`).
-2. Map pin P1.0 using `sbit` and define active-low macros (`LED_ON = 0`, `LED_OFF = 1`).
-3. Construct `soft_delay()` using calibrated nested loops to generate roughly 0.5 s of delay per call.
-4. Inside `main()`, drive the LED pin LOW to turn it on, call `soft_delay()`, drive it HIGH to turn it off, and call `soft_delay()` again.
+2. Map pin P1.0 using `sbit led = P1^0;` (active-low: 0 = ON, 1 = OFF).
+3. Construct `delay(count)` using nested loops — outer iterates `count` times, inner `volatile unsigned char j` runs to 250.
+4. Inside `main()`, initialise `led = 1` (off), then drive it LOW to turn it on, call `delay(200)`, drive it HIGH to turn it off, and call `delay(200)` again.
 5. Keep repeating the toggle sequence within an infinite loop (`while (1)`).
 
 **Code Base:**
 
-- `main.c` — `soft_delay(HALF_PERIOD_PASSES)` with `HALF_PERIOD_PASSES = 221`
+- `main.c` — `delay(200)` called for each ON/OFF half-period (outer loop count = 200, inner loop to 250)
 - `TASK2B.uvproj`, `STARTUP.A51`
 
 ### 3. Inference

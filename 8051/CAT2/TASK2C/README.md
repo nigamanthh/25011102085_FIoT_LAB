@@ -28,14 +28,14 @@
 
 **Working Principle:**
 
-To make delay management cleaner and reusable across upcoming labs, we packaged our delay routines into a modular library (`delay.h` and `delay.c`). The core function `delay_ms(n)` executes a calibrated 1 ms timing loop $n$ times. The 1 ms block consists of two 50-iteration loops using a `volatile` counter; at 9 machine cycles per pass plus call and loop overhead (22 + 18 × 50 = 922 cycles), this produces 999.8 µs (~1.000 ms) at our 11.0592 MHz crystal frequency (tested in uCsim simulator, though compiler optimization settings in Keil can shift this slightly). In addition, we introduced a fine-grained `delay_50us()` routine to handle microsecond delays needed by slower external peripherals, such as the HD44780 LCD module used in CAT 7.
+To make delay management cleaner and reusable across upcoming labs, we packaged our delay routines into a modular library (`delay.h` and `delay.c`). We declare `sbit led = P1^0;` to bind the LED pin directly to Port 1 bit 0 (active-low). The core function `delay_ms(n)` executes a calibrated 1 ms timing loop $n$ times. The 1 ms block consists of two 50-iteration loops using a `volatile` counter; at 9 machine cycles per pass plus call and loop overhead (22 + 18 × 50 = 922 cycles), this produces 999.8 µs (~1.000 ms) at our 11.0592 MHz crystal frequency (tested in uCsim simulator, though compiler optimization settings in Keil can shift this slightly). In addition, we introduced a fine-grained `delay_50us()` routine to handle microsecond delays needed by slower external peripherals, such as the HD44780 LCD module used in CAT 7.
 
 **Pseudocode:**
 
 1. Define the prototypes for `delay_ms()` and `delay_50us()` in `delay.h`.
 2. Implement the cycle-calibrated software loops inside `delay.c`.
-3. Include `delay.h` in `main.c`.
-4. Inside the infinite loop, switch the LED ON, invoke `delay_ms(500)`, switch the LED OFF, and call `delay_ms(500)`.
+3. Include `reg52.h` and `delay.h` in `main.c`, mapping `sbit led = P1^0;`.
+4. Inside `main()`, initialize `led = 1` (OFF). Inside the infinite loop, switch the LED ON (`led = 0`), invoke `delay_ms(500)`, switch the LED OFF (`led = 1`), and call `delay_ms(500)`.
 5. Repeat indefinitely to maintain continuous 1 Hz blinking.
 
 **Code Base:**
@@ -43,7 +43,7 @@ To make delay management cleaner and reusable across upcoming labs, we packaged 
 - Project files: `TASK2C.uvproj` (Keil µVision), `STARTUP.A51`, firmware `Objects/TASK2C.hex`.
 - `delay.h` — interface and timing notes
 - `delay.c` — calibrated loops
-- `main.c` — 1 Hz blink with `delay_ms(BLINK_HALF_MS)`
+- `main.c` — 1 Hz blink with `delay_ms(500)` for each ON/OFF half-period
 
 ### 3. Inference
 

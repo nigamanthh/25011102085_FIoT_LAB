@@ -16,7 +16,7 @@ Every task directory includes its own `README.md` detailing the experiment setup
 |---|---|---|---|
 | [CAT 2](8051/CAT2/) | Tool chain, bare-metal blink, delay library | `sbit` SFR access, calibrated loops, `delay_ms()` | [TASK2B](8051/CAT2/TASK2B/), [TASK2C](8051/CAT2/TASK2C/) |
 | [CAT 3](8051/CAT3/) | Four-state LED pattern generator | state machine, debouncing, edge detection | [TASK3A](8051/CAT3/TASK3A/) |
-| [CAT 4](8051/CAT4/) | Keypad + seven-segment + LED HMI | row scanning, look-up tables, required function split | [TASK4A](8051/CAT4/TASK4A/) |
+| [CAT 4](8051/CAT4/) | Keypad + seven-segment + LED HMI | row scanning, direct decode and switch mapping, modular function split | [TASK4A](8051/CAT4/TASK4A/) |
 | [CAT 5](8051/CAT5/) | Timer interrupts: 1 s base, PWM fade, square waves, signal patterns, stepper | Timer 0 Mode 1/2, ISR time base, software PWM | [TASK5A](8051/CAT5/TASK5A/), [TASK5B.1](8051/CAT5/TASK5B/TASK5B.1/), [TASK5B.2](8051/CAT5/TASK5B/TASK5B.2/), [TASK5B.3](8051/CAT5/TASK5B/TASK5B.3/), [TASK5C](8051/CAT5/TASK5C/) |
 | [CAT 6](8051/CAT6/) | UART driver, echo, interrupt RX ring buffer | SCON, Timer-1 baud, TI/RI, serial ISR | [TASK6A](8051/CAT6/TASK6A/), [TASK6B](8051/CAT6/TASK6B/), [TASK6C](8051/CAT6/TASK6C/) |
 | [CAT 7](8051/CAT7/) | 16×2 LCD driver, live values, keypad-moved cursor | HD44780 4-bit init, DDRAM addressing | [TASK7A](8051/CAT7/TASK7A/), [TASK7B](8051/CAT7/TASK7B/), [TASK7C](8051/CAT7/TASK7C/) |
@@ -147,7 +147,7 @@ flowchart LR
 | 7 | AT89S52 | text on both LCD rows; live counter; `*` moves with keys 2/4/6/8 |
 | 8 | Blue Pill | PC13 LED follows / toggles with PA15; long press (≥ 1 s) starts blinking |
 | 9 | Blue Pill | PuTTY 115200: echo; `LED ON` / `LED OFF` / `LED TOGGLE` control PC13 |
-| 10 | Blue Pill + Wemos | `>> AT` / `<< OK`; IP and MAC printed after joining Wi-Fi |
+| 10 | Blue Pill + Wemos | `>> AT` / `<< OK`; version (`AT+GMR`), station mode, AP scan (`AT+CWLAP`), interactive dual-UART bridge |
 | 11 | Blue Pill + Wemos | browser at `http://<IP>/` shows the STM32 page |
 | 12 | Nucleo-F401RE | LD2 blinks at 1 Hz (84 MHz clock confirmed); B1 short / long press behaviour |
 | 13 | Nucleo + BME280 + Wemos | UART shows chip ID `0x60` and T / P / H; browser and Node-RED receive the JSON |
@@ -160,7 +160,7 @@ flowchart LR
 | AT89S52 development kit | CAT 2–7 | 11.0592 MHz, on-board LED P1.0 (active-low), keypad, 7-segment, 16×2 LCD, USBasp ISP |
 | STM32 Blue Pill (F103C6 / F103C8) | CAT 8–11 | 8 MHz crystal → 72 MHz, LED PC13 (active-low), ST-LINK V2 over SWD |
 | NUCLEO-F401RE | CAT 12–15 | 8 MHz from ST-LINK (HSE bypass) → 84 MHz, LD2 PA5, B1 PC13 |
-| Wemos D1 mini (ESP8266) | CAT 11, 13, 14 | Espressif AT firmware, 115200 baud |
+| Wemos D1 mini (ESP8266) | CAT 10, 11, 13, 14 | Espressif AT firmware, 115200 baud |
 | Bosch BME280 | CAT 13, 14 | I²C address 0x76 |
 | USB-to-TTL converter | CAT 6, 9, 10, 11, 13, 14 | PuTTY terminal |
 | ULN2003 + 28BYJ-48 | CAT 5 (optional task) | stepper motor |

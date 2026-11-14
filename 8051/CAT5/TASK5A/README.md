@@ -31,21 +31,22 @@ Crystal 11.0592 MHz → machine cycle 1.085 µs → Timer 0 → overflow → **i
 
 **Working Principle:**
 
-In this task, we generate an accurate 1-second timebase entirely through hardware Timer 0 interrupts rather than blocking software delays. Operating at 11.0592 MHz, one 8051 machine cycle takes $12 / 11059200 \approx 1.085$ µs. To obtain a 1 ms tick, the timer must count 922 machine cycles. In 16-bit Mode 1, the counter overflows at 65536, requiring an initial value of $65536 - 922 = 64614$ (0xFC66). To compensate for the latency of vector branching and context switching, we offset the reload value by 12 cycles, setting `TH0:TL0 = 0xFC72` directly inside the ISR (interrupt vector 1, using register bank 1). The ISR increments `ms_ticks` on each overflow; once 1000 ms ticks elapse, it asserts `second_flag`. The foreground `main()` loop checks this flag and toggles the LED on P1.1, leaving the CPU available for background work.
+In this task, we generate an accurate 1-second timebase entirely through hardware Timer 0 interrupts rather than blocking software delays. Operating at 11.0592 MHz, one 8051 machine cycle takes $12 / 11059200 \approx 1.085$ µs. To obtain a 1 ms tick, the timer must count 922 machine cycles. In 16-bit Mode 1, the counter overflows at 65536, requiring an initial value of $65536 - 922 = 64614$ (0xFC66). To compensate for the latency of vector branching and context switching, we offset the reload value by 12 cycles, setting `TH0:TL0 = 0xFC72` directly inside the ISR (interrupt vector 1, using register bank 1). The ISR increments `ms_ticks` on each overflow; once 1000 ms ticks elapse, it asserts `second_flag`. The foreground `main()` loop checks this flag and toggles the LED on P1.1 (`sbit led = P1^1;`), leaving the CPU available for background work.
 
 **Pseudocode:**
 
-1. Configure TMOD for Timer 0 16-bit Mode 1, load `TH0:TL0 = 0xFC72`, and enable interrupts (`ET0 = 1`, `EA = 1`) before starting the timer (`TR0 = 1`).
-2. Inside `timer0_isr()`:
-   a. Reload Timer 0 registers with `0xFC72`.
+1. In `main()`, initialize `led = 0`, then call `timer0_init()`.
+2. In `timer0_init()`, configure TMOD for Timer 0 16-bit Mode 1 (`TMOD = (TMOD & 0xF0) | 0x01`), pre-load `TH0 = 0xFC; TL0 = 0x72;`, clear overflow flag `TF0 = 0`, enable Timer 0 interrupt (`ET0 = 1`) and global interrupt (`EA = 1`), and start Timer 0 (`TR0 = 1`).
+3. Inside `timer0_isr() interrupt 1 using 1`:
+   a. Reload Timer 0 registers `TH0 = 0xFC; TL0 = 0x72;`.
    b. Increment `ms_ticks`.
    c. When `ms_ticks` reaches 1000, reset `ms_ticks = 0` and set `second_flag = 1`.
-3. In `main()`, poll `second_flag`. When asserted, clear it and toggle pin P1.1.
+4. In `main()`, poll `second_flag` in an infinite loop. When asserted, clear it (`second_flag = 0`) and toggle the LED (`led = !led`).
 
 **Code Base:**
 
 - Project files: `TASK5A.uvproj` (Keil µVision), `STARTUP.A51`, firmware `Objects/TASK5A.hex`.
-- `main.c` — `timer0_isr() interrupt 1 using 1`, `timer0_init_1ms()`
+- `main.c` — `timer0_isr() interrupt 1 using 1`, `timer0_init()`
 
 ### 3. Inference
 

@@ -58,7 +58,12 @@ This task explores the fundamental AT command set used to configure and query th
 **Code Base:**
 
 - Project files: `CAT10B_ESP8266_AT_Command_Explorer.ioc` (CubeMX configuration), `MDK-ARM/CAT10B_ESP8266_AT_Command_Explorer.uvprojx` (Keil MDK), `.project` / `.cproject` (STM32CubeIDE); application code in `Core/Src/main.c`.
-- Replies are buffered (1 KB) before printing so no ESP byte is lost while PuTTY is written
+- Dual-UART mapping: USART1 (PA9/PA10) for ESP8266 modem, USART2 (PA2/PA3) for PC terminal (both 115200-8-N-1).
+- `esp_read_line()` — line-by-line reader with configurable timeout
+- `at_command()` — command dispatcher and response aggregator (1 KB buffer `resp[1024]`, status 0 = OK, 1 = ERROR/FAIL, 2 = TIMEOUT)
+- `at_show()` — prints command (`>>`) and formatted responses (`<<`) to the PC terminal
+- `at_bridge_start()` / `at_bridge_poll()` — interrupt-driven dual-UART bridge with 256-byte RX circular buffers and 512-byte non-blocking TX queues
+- Interrupt callbacks: `HAL_UART_RxCpltCallback()` (re-arming single-byte IT RX), `HAL_UART_TxCpltCallback()` (advancing queued TX chunks), and `HAL_UART_ErrorCallback()` (clearing ORE flag and re-arming RX)
 
 **Expected Output:**
 

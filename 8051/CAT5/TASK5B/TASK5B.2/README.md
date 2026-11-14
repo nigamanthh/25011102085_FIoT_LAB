@@ -33,25 +33,30 @@ Crystal 11.0592 MHz → machine cycle 1.085 µs → Timer 0 → overflow → **i
 
 Here, Timer 0 operates in 16-bit Mode 1 to synthesize square waves across five selectable frequencies: 100 Hz, 500 Hz, 1 kHz, 2 kHz, and 5 kHz. Each timer overflow fires an interrupt that toggles P1.1, which means the timer must expire every half-period: $T_{half} = 1 / (2f)$. At our clock speed of 11.0592 MHz (machine cycle rate = 921.6 kHz), the required count is $N = 921600 / (2f) = 460800 / f$. The table lists the ideal 16-bit reload values ($65536 - N$). In the C code, we add `ISR_LATENCY` (12 cycles) to offset the delay between hardware overflow and register reload: $\text{Reload} = 65536 - N + 12$. Whenever the user changes the mode via the keypad, Timer 0 is temporarily halted, reloaded with the new preset, and restarted so the selected output frequency stabilizes immediately. Testing Mode 1 in the uCsim simulator confirms an output of 100.2 Hz.
 
-| Mode | f | N | Reload |
+| Mode | f | N | Reload (65536−N+12) |
 |---|---|---|---|
-| 1 | 100 Hz | 4608 | 0xEE00 |
-| 2 | 500 Hz | 922 | 0xFC66 |
-| 3 | 1 kHz | 461 | 0xFE33 |
-| 4 | 2 kHz | 230 | 0xFF1A |
-| 5 | 5 kHz | 92 | 0xFFA4 |
+| 0 | 100 Hz | 4608 | 0xEE0C |
+| 1 | 500 Hz | 922 | 0xFC72 |
+| 2 | 1 kHz | 461 | 0xFE3F |
+| 3 | 2 kHz | 230 | 0xFF26 |
+| 4 | 5 kHz | 92 | 0xFFB0 |
 
 **Pseudocode:**
 
-1. Compute reload values for modes 1 to 5: $\text{reload} = 65536 - N + \text{ISR\_LATENCY}$.
-2. In the Timer 0 ISR: reload `TH0:TL0` with the active mode's reload value and toggle output pin P1.1.
-3. In `main()`, poll the keypad for mode-change keys.
-4. On a key event, cycle to the next frequency mode, show the mode number (1–5) on the 7-segment display, and apply the new timer reload.
+1. In `set_mode(mode)` (modes 0 to 4):
+   a. Compute the 16-bit timer reload value ($\text{Reload} = 65536 - N + 12$) using a `switch(mode)` statement.
+   b. Temporarily stop Timer 0 and disable its interrupt (`TR0 = 0; ET0 = 0;`).
+   c. Store high and low reload bytes in `reload_h` and `reload_l`, load `TH0` and `TL0`, clear `TF0 = 0`, then re-enable (`ET0 = 1; TR0 = 1;`).
+   d. Output the corresponding mode digit (1 through 5) onto common-cathode 7-segment Port 0 via a `switch(mode)` statement (0x06, 0x5B, 0x4F, 0x66, 0x6D).
+2. Inside `timer0_isr() interrupt 1 using 1`: reload `TH0 = reload_h; TL0 = reload_l;` and toggle output pin `signal = !signal;` (`sbit signal = P1^1;`).
+3. In `main()`, initialize `button_col = 0; button_row = 1;`, configure Timer 0 for 16-bit Mode 1 (`TMOD = (TMOD & 0xF0) | 0x01; EA = 1;`), and apply initial mode via `set_mode(0)`.
+4. In the foreground loop, poll `button_pressed()` (debounced with 20 ms delay and wait-for-release); upon each press, increment `mode` (wrapping from 4 back to 0) and call `set_mode(mode)`.
 
 **Code Base:**
 
 - Project files: `TASK5B_2.uvproj` (Keil µVision), `STARTUP.A51`, firmware `Objects/TASK5B_2.hex`.
-- `main.c` — `HALF_PERIOD[]` table, `set_mode()`
+- `main.c` — `set_mode()`, `timer0_isr() interrupt 1 using 1`, `button_pressed()`
+- `delay.c/.h` — software delay for button debounce
 
 ### 3. Inference
 

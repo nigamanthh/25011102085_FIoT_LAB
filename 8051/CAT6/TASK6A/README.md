@@ -43,6 +43,7 @@ In this task, we initialize the on-chip UART of the AT89S52 for serial transmiss
 
 - Project files: `TASK6A.uvproj` (Keil µVision), `STARTUP.A51`, firmware `Objects/TASK6A.hex`.
 - `main.c` — `uart_init()`, `uart_putc()`, `uart_puts()`
+- `delay.c` / `delay.h` — software busy-wait delay library (`delay_ms()`)
 
 **Expected Output:**
 
