@@ -1,6 +1,6 @@
 # 25011102085_FIoT_LAB — 8051 and STM32 Embedded / IoT Experiments
 
-[![Build all projects](https://github.com/nigamanthh/25011102085_FIoT_LAB/actions/workflows/build.yml/badge.svg)](https://github.com/nigamanthh/25011102085_FIoT_LAB/actions/workflows/build.yml) ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+
 
 **Student Name:** S Nigamanth | **Register Number:** 25011102085
 
