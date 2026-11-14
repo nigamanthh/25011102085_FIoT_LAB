@@ -207,19 +207,3 @@ Note on numbering: CAT 5 Task 2 has three separate sub-parts, organized under `8
 **STM32 (STM32CubeIDE):** Choose **File → Import → General → Existing Projects into Workspace**, select the target task folder, run **Build**, and flash using **Run → Debug As → STM32 C/C++ Application**. The Wi-Fi tasks (CAT 11A, 11B, 13B, and 14) look for access point credentials in `Core/Inc/wifi_secrets.h`. This file is git-ignored to prevent pushing real passwords. Create it alongside `wifi_config.h` using `#define WIFI_SSID "..."` and `#define WIFI_PASSWORD "..."`; if omitted, the project compiles using fallback placeholders.
 
 **Node-RED:** In the Node-RED interface, go to Menu → Import, select the corresponding `NodeRED_*.json` file, and click Deploy.
-
-## Notes
-
-* All custom code is placed inside STM32CubeMX `USER CODE` comment blocks, so running *Generate Code* inside CubeMX does not erase modifications.
-* Floating-point numbers are formatted into strings using integer arithmetic (`fmt_fixed.h`) to avoid linking standard floating-point `printf` routines from newlib-nano.
-* All projects can be built via the command line with `tools/build_all.sh` (this is the same workflow triggered on push by GitHub Actions). The recorded output in `docs/build-log.txt` reflects this script run locally with the ARM GCC toolchain bundled in STM32CubeIDE and SDCC 4.6. To refresh the committed 8051 HEX targets, run `UPDATE_HEX=1 tools/build_all.sh 8051`.
-* Host-side unit tests: running `make -C tests` tests the MQTT packet builder, ESPLib, and the ESP8266 AT state engine against a local mock ESP8266 instance.
-* For details regarding library synchronization, HEX generation, and build logs, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-## Licence
-
-Original work: MIT — see [`LICENSE`](LICENSE). Third-party components keep their own licences — see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-## Third-party code
-
-STM32Cube HAL / CMSIS (STMicroelectronics), Bosch Sensortec BME280_SensorAPI (BSD-3-Clause), Keil `STARTUP.A51`. The CAT 14 MQTT client keeps the function names of the course ESPLib (by Can Güveren) but is an independent implementation — see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
